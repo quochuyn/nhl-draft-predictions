@@ -6,7 +6,7 @@ from sklearn import preprocessing
 
 
 
-def clean_reports(input_file='data/prospect-data.csv', raw=False):
+def clean(input_file='data/prospect-data.csv', raw=False):
     r"""
     Load and clean the NHL prospects data which is a collection 
     of 2014-2022 NHL player scouting reports from various public 
@@ -55,5 +55,5 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
-    clean_df = clean_reports(args.input_file)
+    clean_df = clean(args.input_file)
     clean_df.to_csv(args.output_file, index=False)

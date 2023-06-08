@@ -133,12 +133,12 @@ class NltkPreprocessor():
     
     def get_text(self):
         if self.tokens is not None:
-            return self.tokens.apply(lambda x: ' '.join(x))
+            return self.tokens.apply(lambda x: ' '.join(x) if x is not np.NaN else x)
         return self.reports
 
 
 
-def preprocess_reports(prospect_df):
+def preprocess(prospect_df):
     r"""
     Parameters
     ----------
@@ -184,6 +184,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     clean_df = pd.read_csv(args.input_file)
-    preprocessed_df = preprocess_reports(clean_df)
+    preprocessed_df = preprocess(clean_df)
     preprocessed_df.to_csv(args.output_file, index=False)
     
