@@ -125,7 +125,11 @@ class NltkPreprocessor():
         elif normalization == 'wordnet':
             # TODO: lemmatizer also needs the part of speech (pos)
             #       otherwise it will default to nouns
-            raise NotImplementedError()
+            lemmatizer = WordNetLemmatizer()
+            self.tokens = self.tokens.apply(
+                lambda x: [lemmatizer.lemmatize(t) for t in x]
+                          if x is not np.NaN else x
+            )
         else:
             ValueError(f"The normalization technique {normalization} is not supported.")
 
