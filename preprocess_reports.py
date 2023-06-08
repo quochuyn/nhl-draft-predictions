@@ -30,17 +30,12 @@ class NltkPreprocessor():
     This class for a NLTK text preprocessing pipeline comes from
     https://towardsdatascience.com/elegant-text-pre-processing-with-nltk-in-sklearn-pipeline-d6fe18b91eb8
     """
-    
 
-    def __init__(self, reports : pd.DataFrame):
+    def __init__(self, reports : pd.Series):
 
         # merge all scouting reports into one report
-        self.reports = reports.apply(
-            lambda row: ' '.join([row[i] for i in row.index if row[i] is not np.NaN]), 
-            axis=1
-        ).rename(
-            'all_reports'
-        )
+        self.reports = reports
+        self.report_name = reports.name
         self.tokens = None
 
         self.stop_words = stopwords.words('english')
@@ -54,12 +49,14 @@ class NltkPreprocessor():
         }
     
     def lower(self):
-        self.reports = self.reports.apply(lambda x: x.lower())
+        self.reports = self.reports.apply(lambda x: x.lower() if x is not np.NaN else x)
         return self
     
     def remove_names(self, names : pd.Series):
         def _remove_names(row):
-            report = row['all_reports']
+            if row[self.report_name] is np.NaN:
+                return row[self.report_name]
+            report = row[self.report_name]
             for part in row['Name'].lower().split(' '):
                 report = re.sub(
                     rf"{part}[\w']*", # patttern
@@ -78,13 +75,13 @@ class NltkPreprocessor():
         return self
     
     def remove_whitespace(self):
-        self.reports = self.reports.apply(lambda x: re.sub('\n', ' ', x))
-        self.reports = self.reports.apply(lambda x: re.sub('\r', '', x))
-        self.reports = self.reports.apply(lambda x: re.sub(' +', ' ', x))
+        self.reports = self.reports.apply(lambda x: re.sub('\n', ' ', x) if x is not np.NaN else x)
+        self.reports = self.reports.apply(lambda x: re.sub('\r', '', x) if x is not np.NaN else x)
+        self.reports = self.reports.apply(lambda x: re.sub(' +', ' ', x) if x is not np.NaN else x)
         return self
     
     def tokenize_text(self):
-        self.tokens = self.reports.apply(lambda x: word_tokenize(x))
+        self.tokens = self.reports.apply(lambda x: word_tokenize(x) if x is not np.NaN else x)
         return self
 
     def remove_stopwords(self):
@@ -95,6 +92,7 @@ class NltkPreprocessor():
             lambda x: [t for t in x 
                         if (t not in self.stop_words)
                             and (t not in self.hockey_words)]
+                      if x is not np.NaN else x
         )
             
         return self
@@ -113,13 +111,15 @@ class NltkPreprocessor():
         if normalization == 'porter':
             stemmer = PorterStemmer()
             self.tokens = self.tokens.apply(
-                lambda x: [stemmer.stem(t) for t in x]
+                lambda x: [stemmer.stem(t) for t in x] 
+                          if x is not np.NaN else x
             )
         # snowball stemmer
         elif normalization == 'snowball':
             stemmer = SnowballStemmer()
             self.tokens = self.tokens.apply(
                 lambda x: [stemmer.stem(t) for t in x]
+                          if x is not np.NaN else x
             )
         # wordnet lemmatizer
         elif normalization == 'wordnet':
@@ -138,37 +138,36 @@ class NltkPreprocessor():
 
 
 
-def preprocess_reports(prospect_df, reports=None):
+def preprocess_reports(prospect_df):
     r"""
     Parameters
     ----------
     prospect_df : pandas.DataFrame
-        The prospects data frame
-    reports : list, default=None
-        The reports to use. Otherwise, defaults to all reports.
+        The prospects data frame with raw scouting reports.
 
     Returns
     -------
-    processed_reports : pandas.Series
-        The reports processed through NLTK methods.
+    preprocessed_df : pandas.DataFrame
+        The data frame with reports processed through NLTK methods.
     """
 
-    # by default, use all scouting reports
-    if reports is None:
-        mask = prospect_df.columns.str.match('Description')
-        scouting_reports = prospect_df.columns[mask]
+    # columns for the scouting reports
+    mask = prospect_df.columns.str.match('Description')
+    scouting_reports = prospect_df.columns[mask]
+    
+    preprocessed_df = prospect_df.copy()
+    for report in scouting_reports:
+        report_preprocessor = NltkPreprocessor(prospect_df[report])
+        preprocessed_df.loc[:,report] = report_preprocessor\
+            .lower()\
+            .remove_names(prospect_df['Name'])\
+            .remove_whitespace()\
+            .tokenize_text()\
+            .remove_stopwords()\
+            .normalize_words(normalization='porter')\
+            .get_text()
 
-    report_preprocessor = NltkPreprocessor(prospect_df[scouting_reports])
-    processed_reports = report_preprocessor\
-        .lower()\
-        .remove_names(prospect_df['Name'])\
-        .remove_whitespace()\
-        .tokenize_text()\
-        .remove_stopwords()\
-        .normalize_words(normalization='porter')\
-        .get_text()
-
-    return processed_reports
+    return preprocessed_df
 
 
 
@@ -180,11 +179,11 @@ if __name__ == '__main__':
         'input_file', help='the clean NHL prospects data file (.CSV)'
     )
     parser.add_argument(
-        'output_file', help='the processed NHL prospects data file (.CSV)'
+        'output_file', help='the preprocessed NHL prospects data file (.CSV)'
     )
     args = parser.parse_args()
 
     clean_df = pd.read_csv(args.input_file)
-    clean_df.loc[:,'processed_reports'] = preprocess_reports(clean_df)
-    clean_df.to_csv(args.output_file, index=False)
+    preprocessed_df = preprocess_reports(clean_df)
+    preprocessed_df.to_csv(args.output_file, index=False)
     

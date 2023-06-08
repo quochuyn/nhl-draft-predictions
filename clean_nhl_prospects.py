@@ -30,9 +30,6 @@ def clean_reports(input_file='data/prospect-data.csv', raw=False):
     # no cleaning
     if raw:
         return df
-    
-    # drop `Average Ranking` column
-    df = df.drop(['Average Ranking'], axis=1)
 
     # encode position
     pos_le = preprocessing.LabelEncoder()
