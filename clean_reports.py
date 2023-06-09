@@ -31,12 +31,14 @@ def clean(input_file='data/prospect-data.csv', raw=False):
     if raw:
         return df
 
-    # encode position
-    pos_le = preprocessing.LabelEncoder()
+    # encode position with OneHotEncoder over LabelEncoder
+    #   since LabelEncoder defines an unintentional ordering
+    #   (e.g., 0 < 1 < 2)
+    pos_le = preprocessing.OneHotEncoder()
     df.loc[:,'position_encoded'] = pos_le.fit_transform(df['Position'])
 
     # encode team names
-    team_le = preprocessing.LabelEncoder()
+    team_le = preprocessing.OneHotEncoder()
     df.loc[:,'team_encoded'] = team_le.fit_transform(df['Team'])
 
     return df
