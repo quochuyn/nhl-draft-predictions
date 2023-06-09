@@ -1,4 +1,12 @@
-.DEFAULT_GOAL := artifacts/preprocessed.csv
+.DEFAULT_GOAL := artifacts/model.pkl
+
+artifacts/model.pkl: train_draft_position_predictor.py artifacts/preprocessed.csv
+	C:/Users/mrquo/anaconda3/envs/ml/python.exe \
+	c:/Users/mrquo/Desktop/School/2023SpringSummer/SIADS696/nhl-draft-predictions/train_draft_position_predictor.py -v \
+	artifacts/preprocessed.csv \
+	artifacts/model.pkl \
+	artifacts/metrics.json
+	
 
 artifacts/preprocessed.csv: preprocess_reports.py artifacts/clean.csv
 	C:/Users/mrquo/anaconda3/envs/ml/python.exe \

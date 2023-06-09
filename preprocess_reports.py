@@ -170,6 +170,12 @@ def preprocess(prospect_df):
             .remove_stopwords()\
             .normalize_words(normalization='porter')\
             .get_text()
+        
+    # merge all reports together
+    preprocessed_df.loc[:,'all_reports'] = preprocessed_df[scouting_reports].apply(
+        lambda row: ' '.join([row[i] for i in row.index if row[i] is not np.NaN]),
+        axis=1
+    )
 
     return preprocessed_df
 
