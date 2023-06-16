@@ -5,7 +5,7 @@ artifacts/model.pkl: train_draft_position_predictor.py artifacts/preprocessed.cs
 	c:/Users/mrquo/Desktop/School/2023SpringSummer/SIADS696/nhl-draft-predictions/train_draft_position_predictor.py -v \
 	artifacts/preprocessed.csv \
 	artifacts/model.pkl \
-	artifacts/metrics.json
+	artifacts/metrics.txt
 	
 
 artifacts/preprocessed.csv: preprocess_reports.py artifacts/clean.csv

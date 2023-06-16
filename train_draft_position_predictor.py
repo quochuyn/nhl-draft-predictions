@@ -6,23 +6,48 @@ import pickle
 import numpy as np
 import pandas as pd
 
+from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.model_selection import train_test_split
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
 
+from sentence_transformers import SentenceTransformer
 
+
+
+class CustomBertTransformer(BaseEstimator, TransformerMixin):
+
+    def __init__(self):
+        # throw all arguments to the superclass
+        super().__init__()
+
+        self.model = SentenceTransformer('all-mpnet-base-v2')
+
+    def fit(self, X, y=None):
+        # no fitting
+        return self
+    
+    def transform(self, X, y=None):
+        # return bert embeddings
+        embeddings = self.model.encode(X)
+        return embeddings
+        
 
 # errors from incorrect formatting of input to TfidfVectorizer was resolved with
 # https://stackoverflow.com/questions/26367075/countvectorizer-attributeerror-numpy-ndarray-object-has-no-attribute-lower
 def _get_text_data(x):
     return x.ravel()
 
-def train(prospect_df):
+def train(prospect_df, numeric_cols=None, categorical_cols=None, text_cols=None):
     r"""
     Train and test a model to predict the draft position. The idea to organize
     the pipeline into preprocessing the features based on their data type comes
@@ -33,6 +58,12 @@ def train(prospect_df):
     prospect_df : pandas.DataFrame
         The NHL prospects dataframe ready to be vectorized and
         trained on the model.
+    numeric_cols : list, default=None
+        The numeric columns/features of X.
+    categorical_cols : list, default=None
+        The categorical columns/features of X, but not including the text columns.
+    text_cols : list, default=None
+        The text columns/features of X.
     
     Returns
     -------
@@ -42,14 +73,20 @@ def train(prospect_df):
         A dictionary holding the train and test data for the model.
     """
 
-    X = prospect_df[['all_reports', 'Height', 'Weight', 'Position']]
+    if numeric_cols is None:
+        numeric_cols = ['Height', 'Weight']
+    if categorical_cols is None:
+        categorical_cols = ['Position']
+    if text_cols is None:
+        text_cols = ['all_reports']
+
+    X = prospect_df[numeric_cols + categorical_cols + text_cols]
     y = prospect_df['Drafted']
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.33, random_state=42
     )
 
-    numeric_cols = ['Height', 'Weight']
     numeric_transformer = Pipeline(
         steps=[
             ('imputer', SimpleImputer(strategy='median')),
@@ -57,7 +94,6 @@ def train(prospect_df):
         ]
     )
 
-    categorical_cols = ['Position']
     categorical_transformer = Pipeline(
         steps=[
             # encode position with OneHotEncoder over LabelEncoder
@@ -68,12 +104,12 @@ def train(prospect_df):
         ]
     )
     
-    text_cols = ['all_reports']
     text_transformer = Pipeline(
         steps=[
             ('imputer', SimpleImputer(strategy='constant', fill_value='')),
             ('selector', FunctionTransformer(_get_text_data)),
-            ('vectorizer', TfidfVectorizer(analyzer='word', ngram_range=(1,2)))
+            # ('vectorizer', TfidfVectorizer(analyzer='word', ngram_range=(1,2)))
+            ('vectorizer', CustomBertTransformer())
         ]
     )
 
@@ -92,12 +128,12 @@ def train(prospect_df):
         ]
     )
 
-    model.fit(X_train, y_train)
+    # model.fit(X_train, y_train)
 
     # Grid Search Parameters for LogisticRegression
     param_grid = {
         'clf__penalty' : ['l1', 'l2'],
-        'clf__C' : np.logspace(-4, 4, 20),
+        'clf__C' : np.logspace(-4, 4, 1),
         'clf__solver' : ['liblinear']
     }
 
@@ -118,16 +154,23 @@ def train(prospect_df):
         verbose=1
     )
     rf_model.fit(X_train, y_train)
-    rf_best = rf_model.best_estimator_
 
     # best found for now to be 0.16 
     # without draft position (I think there is bias with that data)
+    y_train_pred = rf_model.predict(X_train)
+    y_test_pred = rf_model.predict(X_test)
     metrics = {
-        # TODO: output the parameters of the best estimator
-        'score' : rf_best.score(X_test, y_test)
+        **rf_model.best_params_,
+        'train_score' : rf_model.score(X_train, y_train),
+        'test_score' : rf_model.score(X_test, y_test),
+        'train_f1' : f1_score(y_train, y_train_pred, average='micro'),
+        'test_f1' : f1_score(y_test, y_test_pred, average='micro'),
+        # 'mae' : mean_absolute_error(y_test, y_test_pred),
+        # 'mse' : mean_squared_error(y_test, y_test_pred),
+        # 'r2' : r2_score(y_test, y_test_pred),
     }
 
-    return model, metrics
+    return rf_model, metrics
 
 
 
@@ -159,5 +202,5 @@ if __name__ == '__main__':
     with open(args.output_model, 'wb+') as write_file:
         pickle.dump(model, write_file)
 
-    with open(args.output_metrics, 'w') as write_file:
-        json.dump(metrics, write_file)
+    with open(args.output_metrics, 'a+') as write_file:
+        write_file.write(json.dumps(metrics, indent=4) + '\n')
