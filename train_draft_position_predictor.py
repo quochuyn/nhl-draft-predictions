@@ -124,53 +124,26 @@ def train(prospect_df, numeric_cols=None, categorical_cols=None, text_cols=None)
     model = Pipeline(
         steps=[
             ('features', feature_transformer),
-            ('clf', LogisticRegression())
+            ('clf', LinearRegression())
         ]
     )
 
-    # model.fit(X_train, y_train)
-
-    # Grid Search Parameters for LogisticRegression
-    param_grid = {
-        'clf__penalty' : ['l1', 'l2'],
-        'clf__C' : np.logspace(-4, 4, 1),
-        'clf__solver' : ['liblinear']
-    }
-
-    # Training config
-    kfold = StratifiedKFold(n_splits=3)
-    scoring = {'Accuracy': 'accuracy', 'F1': 'f1_macro'}
-    refit = 'F1'
-
-    # Perform GridSearch
-    rf_model = GridSearchCV(
-        model, 
-        param_grid=param_grid, 
-        cv=kfold, 
-        scoring=scoring, 
-        refit=refit, 
-        n_jobs=-1, 
-        return_train_score=True, 
-        verbose=1
-    )
-    rf_model.fit(X_train, y_train)
+    model.fit(X_train, y_train)
 
     # best found for now to be 0.16 
     # without draft position (I think there is bias with that data)
-    y_train_pred = rf_model.predict(X_train)
-    y_test_pred = rf_model.predict(X_test)
+    y_train_pred = model.predict(X_train)
+    y_test_pred = model.predict(X_test)
     metrics = {
-        **rf_model.best_params_,
-        'train_score' : rf_model.score(X_train, y_train),
-        'test_score' : rf_model.score(X_test, y_test),
-        'train_f1' : f1_score(y_train, y_train_pred, average='micro'),
-        'test_f1' : f1_score(y_test, y_test_pred, average='micro'),
-        # 'mae' : mean_absolute_error(y_test, y_test_pred),
-        # 'mse' : mean_squared_error(y_test, y_test_pred),
-        # 'r2' : r2_score(y_test, y_test_pred),
+        **model.best_params_,
+        'train_score' : model.score(X_train, y_train),
+        'test_score' : model.score(X_test, y_test),
+        'mae' : mean_absolute_error(y_test, y_test_pred),
+        'mse' : mean_squared_error(y_test, y_test_pred),
+        'r2' : r2_score(y_test, y_test_pred),
     }
 
-    return rf_model, metrics
+    return model, metrics
 
 
 

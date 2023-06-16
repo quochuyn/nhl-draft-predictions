@@ -37,6 +37,7 @@ class NltkPreprocessor():
         self.reports = reports
         self.report_name = reports.name
         self.tokens = None
+        self._lowered = False
 
         self.stop_words = stopwords.words('english')
         self.hockey_words = HOCKEY_WORDS
@@ -49,6 +50,7 @@ class NltkPreprocessor():
         }
     
     def lower(self):
+        self._lowered = True
         self.reports = self.reports.apply(lambda x: x.lower() if x is not np.NaN else x)
         return self
     
@@ -57,7 +59,8 @@ class NltkPreprocessor():
             if row[self.report_name] is np.NaN:
                 return row[self.report_name]
             report = row[self.report_name]
-            for part in row['Name'].lower().split(' '):
+            for part in row['Name'].split(' '):
+                part = part.lower() if self._lowered else part
                 report = re.sub(
                     rf"{part}[\w']*", # patttern
                     '',               # replacement
@@ -162,13 +165,17 @@ def preprocess(prospect_df):
     preprocessed_df = prospect_df.copy()
     for report in scouting_reports:
         report_preprocessor = NltkPreprocessor(prospect_df[report])
+        # preprocessed_df.loc[:,report] = report_preprocessor\
+        #     .lower()\
+        #     .remove_names(prospect_df['Name'])\
+        #     .remove_whitespace()\
+        #     .tokenize_text()\
+        #     .remove_stopwords()\
+        #     .normalize_words(normalization='porter')\
+        #     .get_text()
         preprocessed_df.loc[:,report] = report_preprocessor\
-            .lower()\
             .remove_names(prospect_df['Name'])\
             .remove_whitespace()\
-            .tokenize_text()\
-            .remove_stopwords()\
-            .normalize_words(normalization='porter')\
             .get_text()
         
     # merge all reports together
