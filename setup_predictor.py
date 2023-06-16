@@ -111,7 +111,7 @@ def setup(numeric_cols=None, categorical_cols=None, text_cols=None, func=None):
     model = Pipeline(
         steps=[
             ('features', feature_transformer),
-            ('regressor', func())
+            ('predictor', func())
         ]
     )
 
