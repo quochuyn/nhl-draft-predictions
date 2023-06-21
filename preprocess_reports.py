@@ -13,18 +13,6 @@ from nltk.stem.wordnet import WordNetLemmatizer
 
 
 
-HOCKEY_WORDS = ["usntdp", "ntdp", "development", "program",
-                "khl", "shl", "ushl", "ncaa", "ohl", "chl", "whl", "qmjhl",
-                "sweden", "russia", "usa", "canada", "ojhl", "finland", 
-                "finnish", "swedish", "russian", "american", "wisconsin",
-                "michigan", "bc", "boston", "london", "bchl", "kelowna",
-                "liiga", 
-                "portland", "minnesota", "ska", "frolunda", "sjhl", "college",
-                "center", "left", "right", "saginaw", "kelowna", "frolunda",
-                "slovakia"]
-
-
-
 class NltkPreprocessor():
     """
     This class for a NLTK text preprocessing pipeline comes from
@@ -40,7 +28,6 @@ class NltkPreprocessor():
         self._lowered = False
 
         self.stop_words = stopwords.words('english')
-        self.hockey_words = HOCKEY_WORDS
 
         self.pos_tag_dict = {
             'J' : wordnet.ADJ,
@@ -87,14 +74,14 @@ class NltkPreprocessor():
         self.tokens = self.reports.apply(lambda x: word_tokenize(x) if x is not np.NaN else x)
         return self
 
-    def remove_stopwords(self):
+    def remove_stopwords(self, hockey_words=None):
         if self.tokens is None:
             self.tokenize_text()
 
         self.tokens = self.tokens.apply(
             lambda x: [t for t in x 
                         if (t not in self.stop_words)
-                            and (t not in self.hockey_words)]
+                            and (t not in hockey_words)]
                       if x is not np.NaN else x
         )
             
