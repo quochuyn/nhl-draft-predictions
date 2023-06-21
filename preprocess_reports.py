@@ -75,6 +75,9 @@ class NltkPreprocessor():
         return self
 
     def remove_stopwords(self, hockey_words=None):
+        if hockey_words is None:
+            hockey_words = []
+
         if self.tokens is None:
             self.tokenize_text()
 
@@ -85,6 +88,27 @@ class NltkPreprocessor():
                       if x is not np.NaN else x
         )
             
+        return self
+    
+    def remove_words(self, words):
+        r"""
+        This method removes any set of words from the text.
+
+        Parameters
+        ----------
+        words : list-like
+            The words to be removed.
+        """
+
+        if self.tokens is None:
+            self.tokenize_text()
+
+        self.tokens = self.tokens.apply(
+            lambda x: [t for t in x
+                       if (t not in words)]
+                      if x is not np.NaN else x
+        )
+
         return self
     
     def normalize_words(self, normalization='porter'):
