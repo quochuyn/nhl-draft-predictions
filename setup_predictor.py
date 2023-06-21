@@ -31,7 +31,6 @@ def _get_text_data(x):
 class CustomBertTransformer(BaseEstimator, TransformerMixin):
 
     def __init__(self):
-        # throw all arguments to the superclass
         super().__init__()
 
         self.model = SentenceTransformer('all-mpnet-base-v2')
@@ -45,7 +44,7 @@ class CustomBertTransformer(BaseEstimator, TransformerMixin):
         embeddings = self.model.encode(X)
         return embeddings
 
-def setup(numeric_cols=None, categorical_cols=None, text_cols=None, func=None):
+def setup(numeric_cols=None, categorical_cols=None, text_cols=None, func=None, bert=False, *args, **kwargs):
     r"""
     Setup a model for prediction. The idea to organize the pipeline into preprocessing 
     the features based on their data type comes from the course SIADS 696.
@@ -59,7 +58,9 @@ def setup(numeric_cols=None, categorical_cols=None, text_cols=None, func=None):
     text_cols : list, default=None
         The text columns/features of X.
     func : sklearn.estimator
-        The classification/regression algorithm from scikit-learn.
+        An instance of a classification/regression estimator from scikit-learn.
+    bert : bool, default=False.
+        Boolean value whether to use the Bert sentence transformers.
         
     Returns
     -------
@@ -95,8 +96,7 @@ def setup(numeric_cols=None, categorical_cols=None, text_cols=None, func=None):
         steps=[
             ('imputer', SimpleImputer(strategy='constant', fill_value='')),
             ('selector', FunctionTransformer(_get_text_data)),
-            # ('vectorizer', TfidfVectorizer(analyzer='word', ngram_range=(1,2)))
-            ('vectorizer', CustomBertTransformer())
+            ('vectorizer', CustomBertTransformer() if bert else TfidfVectorizer(analyzer='word', ngram_range=(1,2)))  
         ]
     )
 
@@ -111,7 +111,7 @@ def setup(numeric_cols=None, categorical_cols=None, text_cols=None, func=None):
     model = Pipeline(
         steps=[
             ('features', feature_transformer),
-            ('predictor', func())
+            ('predictor', func)
         ]
     )
 
