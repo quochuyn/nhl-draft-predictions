@@ -87,14 +87,14 @@ def setup(numeric_cols=None, categorical_cols=None, text_cols=None, func=None, b
             # encode position with OneHotEncoder over LabelEncoder
             #   since LabelEncoder defines an unintentional ordering
             #   (e.g., 0 < 1 < 2)
-            ('imputer', SimpleImputer(strategy='constant', fill_value='')),
-            ('encoder', OneHotEncoder())
+            ('imputer', SimpleImputer(strategy='constant', fill_value=' ')),
+            ('encoder', OneHotEncoder(handle_unknown='ignore'))
         ]
     )
     
     text_transformer = Pipeline(
         steps=[
-            ('imputer', SimpleImputer(strategy='constant', fill_value='')),
+            ('imputer', SimpleImputer(strategy='constant', fill_value=' ')),
             ('selector', FunctionTransformer(_get_text_data)),
             ('vectorizer', CustomBertTransformer() if bert else TfidfVectorizer(analyzer='word', ngram_range=(1,2)))  
         ]
@@ -111,7 +111,7 @@ def setup(numeric_cols=None, categorical_cols=None, text_cols=None, func=None, b
     model = Pipeline(
         steps=[
             ('features', feature_transformer),
-            ('predictor', func)
+            ('clf', func)
         ]
     )
 
