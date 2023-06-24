@@ -96,7 +96,7 @@ def setup(numeric_cols=None, categorical_cols=None, text_cols=None, func=None, b
         steps=[
             ('imputer', SimpleImputer(strategy='constant', fill_value=' ')),
             ('selector', FunctionTransformer(_get_text_data)),
-            ('vectorizer', CustomBertTransformer() if bert else TfidfVectorizer(analyzer='word', ngram_range=(1,2)))  
+            ('vectorizer', CustomBertTransformer() if bert else TfidfVectorizer(analyzer='word', max_df=0.5, min_df=0.04, ngram_range=(1, 3)))  
         ]
     )
 
