@@ -8,8 +8,7 @@ import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.base import clone, BaseEstimator, ClassifierMixin
 
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
@@ -50,11 +49,11 @@ class LogisticOrdinalRegression(BaseEstimator, ClassifierMixin):
         self.clf_ = LogisticRegression(**self.get_params())
         self.clfs_ = {}
 
-        self.unique_class = np.sort(np.unique(y))
-        if self.unique_class.shape[0] > 2:
-            for i in tqdm(range(self.unique_class.shape[0]-1)):
+        self.unique_class_ = np.sort(np.unique(y))
+        if self.unique_class_.shape[0] > 2:
+            for i in tqdm(range(self.unique_class_.shape[0]-1)):
                 # for each k - 1 ordinal value we fit a binary classification problem
-                binary_y = (y > self.unique_class[i]).astype(np.uint8)
+                binary_y = (y > self.unique_class_[i]).astype(np.uint8)
                 clf = clone(self.clf_)
                 clf.fit(X, binary_y)
                 self.clfs_[i] = clf
@@ -62,7 +61,7 @@ class LogisticOrdinalRegression(BaseEstimator, ClassifierMixin):
     def predict_proba(self, X):
         clfs_predict = {k: self.clfs_[k].predict_proba(X) for k in self.clfs_}
         predicted = []
-        for i, y in enumerate(self.unique_class):
+        for i, y in enumerate(self.unique_class_):
             if i == 0:
                 # V1 = 1 - Pr(y > V1)
                 predicted.append(1 - clfs_predict[i][:,1])
@@ -83,44 +82,35 @@ class LogisticOrdinalRegression(BaseEstimator, ClassifierMixin):
 
 
 
-class OrdinalSVC(BaseEstimator, ClassifierMixin):
+class OrdinalKNeighborsClassifier(BaseEstimator, ClassifierMixin):
     r"""
-    This is a twist on C-Support Vector Classification for ranking. Adapted from StackOverflow post:
+    This is a twist on K-Nearest Neighbors Classifier for ranking. Adapted from StackOverflow post:
     https://stackoverflow.com/questions/57561189/multi-class-multi-label-ordinal-classification-with-sklearn
     The primary changes are simply modifying the method signature for the __init__ method.
     """
 
-    def __init__(self, *, C=1.0, kernel='rbf', degree=3, gamma='scale', coef0=0.0, 
-                 shrinking=True, probability=False, tol=0.001, cache_size=200, 
-                 class_weight=None, verbose=False, max_iter=-1, decision_function_shape='ovr', 
-                 break_ties=False, random_state=None):
+    def __init__(self, n_neighbors=5, *, weights='uniform', algorithm='auto', leaf_size=30, 
+                 p=2, metric='minkowski', metric_params=None, n_jobs=None):
         
-        self.C=C,
-        self.kernel=kernel,
-        self.degree=degree,
-        self.gamma=gamma,
-        self.coef0=coef0,
-        self.tol=tol,
-        self.shrinking=shrinking,
-        self.probability=probability,
-        self.cache_size=cache_size,
-        self.class_weight=class_weight,
-        self.verbose=verbose,
-        self.max_iter=max_iter,
-        self.decision_function_shape=decision_function_shape,
-        self.break_ties=break_ties,
-        self.random_state=random_state,
+        self.n_neighbors=n_neighbors
+        self.weights = weights
+        self.algorithm = algorithm
+        self.leaf_size = leaf_size
+        self.p = p
+        self.metric = metric
+        self.metric_params = metric_params
+        self.n_jobs = n_jobs      
 
     def fit(self, X, y):
 
-        self.clf_ = SVC(**self.get_params())
+        self.clf_ = KNeighborsClassifier(**self.get_params())
         self.clfs_ = {}
 
-        self.unique_class = np.sort(np.unique(y))
-        if self.unique_class.shape[0] > 2:
-            for i in tqdm(range(self.unique_class.shape[0]-1)):
+        self.unique_class_ = np.sort(np.unique(y))
+        if self.unique_class_.shape[0] > 2:
+            for i in tqdm(range(self.unique_class_.shape[0]-1)):
                 # for each k - 1 ordinal value we fit a binary classification problem
-                binary_y = (y > self.unique_class[i]).astype(np.uint8)
+                binary_y = (y > self.unique_class_[i]).astype(np.uint8)
                 clf = clone(self.clf_)
                 clf.fit(X, binary_y)
                 self.clfs_[i] = clf
@@ -128,7 +118,7 @@ class OrdinalSVC(BaseEstimator, ClassifierMixin):
     def predict_proba(self, X):
         clfs_predict = {k: self.clfs_[k].predict_proba(X) for k in self.clfs_}
         predicted = []
-        for i, y in enumerate(self.unique_class):
+        for i, y in enumerate(self.unique_class_):
             if i == 0:
                 # V1 = 1 - Pr(y > V1)
                 predicted.append(1 - clfs_predict[i][:,1])
@@ -187,11 +177,11 @@ class RandomForestOrdinalClassifier(BaseEstimator, ClassifierMixin):
         self.clf_ = RandomForestClassifier(**self.get_params())
         self.clfs_ = {}
 
-        self.unique_class = np.sort(np.unique(y))
-        if self.unique_class.shape[0] > 2:
-            for i in tqdm(range(self.unique_class.shape[0]-1)):
+        self.unique_class_ = np.sort(np.unique(y))
+        if self.unique_class_.shape[0] > 2:
+            for i in tqdm(range(self.unique_class_.shape[0]-1)):
                 # for each k - 1 ordinal value we fit a binary classification problem
-                binary_y = (y > self.unique_class[i]).astype(np.uint8)
+                binary_y = (y > self.unique_class_[i]).astype(np.uint8)
                 clf = clone(self.clf_)
                 clf.fit(X, binary_y)
                 self.clfs_[i] = clf
@@ -199,7 +189,7 @@ class RandomForestOrdinalClassifier(BaseEstimator, ClassifierMixin):
     def predict_proba(self, X):
         clfs_predict = {k: self.clfs_[k].predict_proba(X) for k in self.clfs_}
         predicted = []
-        for i, y in enumerate(self.unique_class):
+        for i, y in enumerate(self.unique_class_):
             if i == 0:
                 # V1 = 1 - Pr(y > V1)
                 predicted.append(1 - clfs_predict[i][:,1])
