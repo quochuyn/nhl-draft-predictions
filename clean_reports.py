@@ -31,6 +31,19 @@ def clean(input_file='data/prospect-data.csv', raw=False):
     if raw:
         return df
 
+    position = preprocessing.LabelEncoder()
+    position.fit(df['Position'].unique())
+    df['Position'] = df['Position'].apply(lambda x: position.transform([x])[0])
+
+    team = preprocessing.LabelEncoder()
+    team.fit(df['Team'].unique())
+    df['Team'] = df['Team'].apply(lambda x: team.transform([x])[0])
+
+    height_scaler = preprocessing.StandardScaler()
+    df['Height'] = height_scaler.fit_transform(df['Height'].values.reshape(-1, 1))
+    weight_scaler = preprocessing.StandardScaler()
+    df['Weight'] = weight_scaler.fit_transform(df['Weight'].values.reshape(-1, 1))
+
     return df
 
 
