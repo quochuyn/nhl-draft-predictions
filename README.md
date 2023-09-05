@@ -9,7 +9,7 @@ Read our report [here](https://deepnote.com/@nhl-draft-predictions/NHL-Draft-Pre
 ## 2023 NHL Draft Predictions
 
 A major motivation for taking up this project was to make our own draft predictions for the upcoming 2023 NHL Draft on June 28, 2023 (in 2 days!!). Our results below come from our best model: Random Forest Ordinal Classification using OpenAI embeddings on the reports only, without any other numerical or categorical features. We used all previous years’ data as the training set while the test set was 2023’s prospects. As we were only predicting for a single year’s class, the drafted ranking label predictions could be ranked by performing the `argsort()` method. For future work, we will have to consider `Year` to create actual rankings between players. The issue with making predictions in this project was that the predictions spanned prospects from multiple years. We are pleased to see the results as the top 5 players from aggregate draft ranking from public rankings (mostly) appear within our own model ranking. This reveals that a model architecture that uses word embeddings for draft predictions shows great potential, but our model is not world-changing *yet*.
-![Screenshot](images/final-draft-ranking.png)
+![Screenshot](/images/final-draft-ranking.png)
 
 ## Data Pipeline
 
@@ -22,6 +22,6 @@ Both the supervised and unsupervised tasks go through three different data pipel
 The first technique establishes a baseline for the downstream analysis and model performance while the last two are recent developments in the NLP space. The other dataset features go through separate pipelines for standardization/normalization and one-hot encoding (for categorical features). Finally, the supervised model follows an ordinal regression model which is a sequence of binary classifiers (e.g., Random Forests) that follows a ranking rule for determining the draft order. The main unsupervised methods pass through KMeans clustering and a comparison between TSNE vs UMAP visualizations.
 
 This can be seen in the flowchart visualization:
-![Screenshot](images/data_pipeline.png)
+![Screenshot](/images/data_pipeline.png)
 
 This project is for the University of Michigan's Master of Applied Data Science (MADS) Milestone II (SIADS 696) course for the 2023 Spring/Summer semester.
